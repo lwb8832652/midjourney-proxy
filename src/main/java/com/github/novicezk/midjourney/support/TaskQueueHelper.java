@@ -112,21 +112,6 @@ public class TaskQueueHelper {
 				task.sleep();
 				changeStatusAndNotify(task, task.getStatus());
 			} while (task.getStatus() == TaskStatus.IN_PROGRESS);
-
-			// 上传图片
-			if (task.getStatus() == TaskStatus.SUCCESS) {
-				// 上传图片至七牛云
-				InputStream inputStream = getInputStreamFromUrl(task.getImageUrl());
-				try {
-					String imageUrl = QiNiuYunUploadUtils.uploadFile(inputStream, "draw/mj/" + System.currentTimeMillis() + ".png");
-					if (!StringUtils.isNullOrEmpty(imageUrl)) {
-						task.setImageUrl(imageUrl);
-					}
-					task.setImageUrl(imageUrl);
-				} catch (QiniuException e) {
-					log.error("image upload error", e);
-				}
-			}
 			log.debug("task finished, id: {}, status: {}, image: {}", task.getId(), task.getStatus(), task.getImageUrl());
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
@@ -164,6 +149,20 @@ public class TaskQueueHelper {
 	}
 
 	public void changeStatusAndNotify(Task task, TaskStatus status) {
+		// 上传图片
+		if (status == TaskStatus.SUCCESS) {
+			// 上传图片至七牛云
+			InputStream inputStream = getInputStreamFromUrl(task.getImageUrl());
+			try {
+				String imageUrl = QiNiuYunUploadUtils.uploadFile(inputStream, "draw/mj/" + System.currentTimeMillis() + ".png");
+				if (!StringUtils.isNullOrEmpty(imageUrl)) {
+					task.setImageUrl(imageUrl);
+				}
+				task.setImageUrl(imageUrl);
+			} catch (QiniuException e) {
+				log.error("image upload error", e);
+			}
+		}
 		task.setStatus(status);
 		this.taskStoreService.save(task);
 		this.notifyService.notifyTaskChange(task);
