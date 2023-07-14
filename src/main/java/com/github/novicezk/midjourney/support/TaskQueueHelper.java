@@ -125,6 +125,26 @@ public class TaskQueueHelper {
 		}
 	}
 
+	public void changeStatusAndNotify(Task task, TaskStatus status) {
+		// 上传图片
+		if (status == TaskStatus.SUCCESS) {
+			// 上传图片至七牛云
+			InputStream inputStream = getInputStreamFromUrl(task.getImageUrl());
+			try {
+				String imageUrl = QiNiuYunUploadUtils.uploadFile(inputStream, "draw/mj/" + System.currentTimeMillis() + ".png");
+				if (!StringUtils.isNullOrEmpty(imageUrl)) {
+					task.setImageUrl(imageUrl);
+				}
+				task.setImageUrl(imageUrl);
+			} catch (QiniuException e) {
+				log.error("image upload error", e);
+			}
+		}
+		task.setStatus(status);
+		this.taskStoreService.save(task);
+		this.notifyService.notifyTaskChange(task);
+	}
+
 	/**
 	 * 根据url下载文件流
 	 * @param urlStr
@@ -146,25 +166,5 @@ public class TaskQueueHelper {
 
 		}
 		return inputStream;
-	}
-
-	public void changeStatusAndNotify(Task task, TaskStatus status) {
-		// 上传图片
-		if (status == TaskStatus.SUCCESS) {
-			// 上传图片至七牛云
-			InputStream inputStream = getInputStreamFromUrl(task.getImageUrl());
-			try {
-				String imageUrl = QiNiuYunUploadUtils.uploadFile(inputStream, "draw/mj/" + System.currentTimeMillis() + ".png");
-				if (!StringUtils.isNullOrEmpty(imageUrl)) {
-					task.setImageUrl(imageUrl);
-				}
-				task.setImageUrl(imageUrl);
-			} catch (QiniuException e) {
-				log.error("image upload error", e);
-			}
-		}
-		task.setStatus(status);
-		this.taskStoreService.save(task);
-		this.notifyService.notifyTaskChange(task);
 	}
 }
