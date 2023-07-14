@@ -8,19 +8,11 @@ import com.github.novicezk.midjourney.result.Message;
 import com.github.novicezk.midjourney.result.SubmitResultVO;
 import com.github.novicezk.midjourney.service.NotifyService;
 import com.github.novicezk.midjourney.service.TaskStoreService;
-import com.github.novicezk.midjourney.util.QiNiuYunUploadUtils;
-import com.qiniu.common.QiniuException;
-import com.qiniu.util.StringUtils;
-import io.netty.util.internal.StringUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -126,45 +118,8 @@ public class TaskQueueHelper {
 	}
 
 	public void changeStatusAndNotify(Task task, TaskStatus status) {
-		// 上传图片
-		if (status == TaskStatus.SUCCESS) {
-			// 上传图片至七牛云
-			InputStream inputStream = getInputStreamFromUrl(task.getImageUrl());
-			try {
-				String imageUrl = QiNiuYunUploadUtils.uploadFile(inputStream, "draw/mj/" + System.currentTimeMillis() + ".png");
-				if (!StringUtils.isNullOrEmpty(imageUrl)) {
-					task.setImageUrl(imageUrl);
-				}
-				task.setImageUrl(imageUrl);
-			} catch (QiniuException e) {
-				log.error("image upload error", e);
-			}
-		}
 		task.setStatus(status);
 		this.taskStoreService.save(task);
 		this.notifyService.notifyTaskChange(task);
-	}
-
-	/**
-	 * 根据url下载文件流
-	 * @param urlStr
-	 * @return
-	 */
-	public static InputStream getInputStreamFromUrl(String urlStr) {
-		InputStream inputStream=null;
-		try {
-			//url解码
-			URL url = new URL(java.net.URLDecoder.decode(urlStr, "UTF-8"));
-			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-			//设置超时间为3秒
-			conn.setConnectTimeout(3 * 1000);
-			//防止屏蔽程序抓取而返回403错误
-			conn.setRequestProperty("User-Agent", "Mozilla/4.0 (compatible; MSIE 5.0; Windows NT; DigExt)");
-			//得到输入流
-			inputStream = conn.getInputStream();
-		} catch (IOException e) {
-
-		}
-		return inputStream;
 	}
 }
